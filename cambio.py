@@ -1,35 +1,23 @@
 class CurrencyExchange:
     def __init__(self, exchange_rates):
         self.exchange_rates = exchange_rates
- 
-    def exchange_money (self):
-        
-    
-        unite_budget = {
-            "USD": 1,
-            "EUR": 1.12,
-            "BRL": 0.20,
-            "GBP": 1.34,
-            "YEN": 0.0063}
 
-        try:
-            ask = input("Would you like to exchange your money? (USD, EUR, BRL, GBP, YEN): ")
-            if ask in unite_budget:
-                exchange_rate = unite_budget[ask.upper()]
-            else:
-                raise ValueError("Invalid currency. Please choose from USD, EUR, BRL, GBP, or YEN.")    
-            budget = float(input("What's your budget? "))
-            if budget < 0:
-                raise ValueError("Budget cannot be negative.")
-            if not isinstance(budget, (int, float)):
-                raise ValueError("Budget must be a number.")
-        except ValueError as e:
-            print(f"Error: {e}")
+    def budget_exchange(self): #list of monetary units for exchange possible. references: dollar
+        monetary_unit = {
+            "USD": 1.0, #dollar
+            "EUR": 0.85, #Euro
+            "GBP": 0.75, #british pound
+            "JPY": 110.0, #yen
+            "BRL": 5.0 #brazilian real
+        }
+        return monetary_unit
 
-        finally:
-            if budget and exchange_rate:
-                exchange = round(budget / exchange_rate, 2)
-                print(f"Your exchanged amount is: {exchange} {ask.upper()}")
+    def exchange_money(self): #try to exchange money using any monetary unit available
+        exchange_rate = input("Which currency do you want to exchange? (USD, EUR, GBP, JPY, BRL): ")
+        if exchange_rate in self.monetary_unit:
+            amount = float(input(f"How much {exchange_rate} do you want exchange?"))
+            target_currency = input("Which currency do you want to convert to? (USD, EUR, GBP, JPY, BRL): ")
+            target_currency_rate = self.monetary_unit.get(target_currency)
 
-currency = CurrencyExchange({})
-currency.exchange_money()
+            monetary_exchange = (amount / self.monetary_unit[exchange_rate]) *  target_currency_rate
+            return(f"Congrats! You exchanged {amount} {exchange_rate} for {monetary_exchange:.2f} {target_currency}")
