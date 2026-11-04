@@ -1,82 +1,63 @@
 import random as rd
 
-class player:
-    min_level = 1  #nivel minimo, começa nele
-    max_level = 50 #nivel maximo
+class Player:
+    min_level, max_level = 1, 50 #nivel minimo/maximo
+    min_precision, max_precision = 0, 100 #precisão minima/máxima
 
-    min_precision = 0    #precisão minima
-    max_precision = 100  #precisão máxima
+    min_dodge, max_dodge = 0, 100 #esquiva minima/máxima
+    min_hit_chance, max_hit_chance = 5, 95 #chance de acerto minimo/máxima
 
-    min_dodge = 0 #esquiva minima
-    max_dodge = 100 #esquiva maxima
+    evasion_scale = 100 #escala de evasão
 
-    min_hit_chance = 5
-    max_hit_chance = 95
+    __progression_point, __max_points = 3, 3 * max_level #ponto de progressão | limite de pontos máximo
 
-    evasion_scale = 100
-
-    __points_per_level = 3 #pontos ganhos pelo jogador
-
-    stat_path = {
-        "hit_points": ("hp",),
-        "mana": ("mana",),
-        "phy_atk": ("attack", "physical"),
-        "mag_atk": ("attack", "magical"),
-        "phy_def": ("defense", "physical"),
-        "mag_def": ("defense", "magical"),
-    }
-
-    def __init__(self, information, stats, stats_points):
-        self. information = {
-            "name": information["name"], #nome do jogador
-            "category": information["category"], #categoria do jogador: tank/melee/ranged/magic
-            "classe": information["classe"], #classe do jogador: warrior/mage/shooter/assassin/mage/necro/guardian
-            "race": information["race"], #raça
-            "level": information["level"], #nivel do player
+    stats_path = {"hit_points": ("resources", "health", "maximum"),
+    "mana": ("resources", "mana", "maximum"),
+    "phy_atk": ("attack", "physical"),
+    "mag_atk": ("attack", "magical"),
+    "phy_def": ("defense", "physical"),
+    "mag_def": ("defense", "magical")} #caminho para os atributos
+    
+    def __init__ (self, informations, base_stats, stats_points):
+        self.informations = {
+            "identity": {
+                "name": informations["name"],
+                "gender": informations["gender"],
+                "race": informations["race"],
+                "category": informations["category"],
+                "class": informations["class"]}, #identidade do personagem
+                
             "experience": {
-                "xp": information.get("xp", 0), #xp total
-                "xp_req": information.get("xp_req", 100), #total de xp inicial requerido para upar pro proximo lvl
-                "gained_xp": information.get("gained_xp", 0)} #xp ganho
-            }        
+                "level": informations.get("level", 1),
+                "xp": informations.get("xp", 0),
+                "xp_req": informations.get("xp_req", 100),
+                "xp_earn": informations.get("xp_earn", 0)}
+            } #informações de experiencia e nivel
 
         self.base_stats = {
-            "hit_points": stats["hp"], #pontos de vida
-            "mana": stats["mana"], #quantia de mana
+            "resources": {
+                "health": {
+                    "current": base_stats["c_hp"],
+                    "maximum": base_stats["m_hp"]}, #informações de hp
+                "mana": {
+                    "current": base_stats["c_mana"],
+                    "maximum": base_stats["m_mana"],
+                    "regeneration": base_stats["r_mana"]} #informações de mana
+                }, #recursos    
             "attack": {
-                "physical": stats["phy_atk"], #ataque fisico base
-                "magical": stats["mag_atk"]}, #ataque magico base
+                "physical": base_stats["phy_atk"],
+                "magical": base_stats["mag_atk"]}, #tipos de ataque
             "defense": {
-                "physical": stats["phy_def"], #defesa fisica base
-                "magical": stats["mag_def"]}, #defesa magica base
+                "physical": base_stats["phy_def"],
+                "magical": base_stats["mag_def"]}, #tipos de defesa
             "combat": {
-                "precision": stats["prc"], #precisão
-                "dodge": stats["dodge"], #esquiva
-                "velocity": stats["vel"], #velocidade
-                "reaction": stats["react"] #tempo de reação
-            } #informações para combate
-        } #status para combate
-        
-        self.stats_points = {
-            "hit_points": stats_points.get("hp", 0), #zerissima de hp
-            "mana": stats_points.get("mana", 0), #zerissima de mana
-            "attack": {
-                "physical": stats_points.get("phy_atk", 0), #zerissima de ataque fisico
-                "magical": stats_points.get("mag_atk", 0)}, #zerissima de ataque magico
-            "defense": {
-                "physical": stats_points.get("phy_def", 0), #zerissima de defesa fisica
-                "magical": stats_points.get("mag_def", 0)} #zerissima de defesa magica
-        }
+                "precision": base_stats["prc"],
+                "evasion": base_stats["eva"],
+                "agility": base_stats["agl"],
+                "reaction": base_stats["rct"]} #informações de combate
+            } #informações base de status
 
-        self.points_value = {
-            "hit_points": 2, #ponto ganho por upar hp
-            "mana": 3, #ponto ganho por upar mana
-            "attack": {
-                "physical_attack": float, #ponto ganho por upar ataque fisico
-                "magical_attack": float}, #ponto ganho por upar ataque magico
-            "defense": {
-                "physical_defense": float, #ponto ganho por upar defesa fisica
-                "magical_defense": float} #ponto ganho por upar defesa magica
-        } #valor dos pontos por raça
+        self.stats_points = {stat: stats_points.get(stat, 0) for stat in self.stats_path}
 
         self.__points_earn = 0  # pontos disponíveis para gastar
 
