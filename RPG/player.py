@@ -119,6 +119,16 @@ class Player:
         self.stats_points[stat] += amount
         self.__points_earn -= amount
         return True
+    
+    def exchange_points (self): #converte valor de pontos gastos
+        rates = {"hit_points": 2,
+        "mana": 3,
+       "phy_atk": 1,
+        "mag_atk": 1,
+        "phy_def": 1,
+        "mag_def": 1}
+
+        return {stat: points * rates[stat] for stat, points in self.stats_points.items()}
 
     def reset_points(self): #ainda a implementar
         pass
