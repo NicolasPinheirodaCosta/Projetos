@@ -30,7 +30,7 @@ class Player:
             "experience": {
                 "level": informations.get("level", 1),
                 "xp": informations.get("xp", 0),
-                "xp_req": informations.get("xp_req", 100),
+                "xp_req": informations.get("xp_req", self.xp_required(informations.get("level", 1))),
                 "xp_earn": informations.get("xp_earn", 0)}
             } #informações de experiencia e nivel
 
@@ -63,27 +63,62 @@ class Player:
 
     # -------------------- sistema de nivel ---------------------
 
-    def level_cap (self): #limite de nivel (1~50)
+    def xp_required (self, level): #xp necessário para sair do nivel informado
+        return round(100 * level * 1.5)
+
+    def can_level_up (self): #True se o jogador ainda não chegou no nivel máximo
         return self.min_level <= self.informations["experience"]["level"] < self.max_level
 
     def level_up (self): #upar level
         xp = self.informations["experience"]
         xp["level"] += 1
-        xp["xp_req"] = round(100 * xp["level"] * 1.5)      
-        self.points_earn()
+        xp["xp_req"] = self.xp_required(xp["level"])
+        self.earn_points()
         return True
 
     def gain_xp (self, amount): #conta quanto de xp foi ganho
-        if amount <= 0 or not self.level_cap():
+        if amount <= 0 or not self.can_level_up():
             return False
 
         xp = self.informations["experience"]
         xp["xp"] += amount ; xp["xp_earn"] += amount
 
-        while xp["xp"] >= xp["xp_req"] and self.level_cap():
+        while xp["xp"] >= xp["xp_req"] and self.can_level_up():
             xp["xp"] -= xp["xp_req"]
             self.level_up()
 
-        if not self.level_cap():
-            xp["xp"] = 0   
+        if not self.can_level_up(): #nivel máximo: descarta o xp restante
+            xp["xp"] = 0
         return True
+
+    # -------------------- manejamento de pontos ---------------------
+
+    def __total_points(self): #pontos totais acumulados pelo jogador
+        return sum(self.stats_points.values()) + self.__points_earn
+
+    def points_cap (self): #limite máximo para pontos
+        total = self.__total_points()
+        return max(0, self.__max_points - total)
+
+    def earn_points(self): #pontos ganhos pela progressão do player
+        available = self.points_cap()
+        if available <= 0:
+            return 0
+
+        gained = min(self.__progression_point, available)
+        self.__points_earn += gained
+        return gained
+
+    def spend_points(self, stat, amount = 1): #gasta pontos em atributos
+        if stat not in self.stats_path or amount <= 0:
+            return False
+
+        if amount > self.__points_earn:
+            return False
+
+        self.stats_points[stat] += amount
+        self.__points_earn -= amount
+        return True
+
+    def reset_points(self): #ainda a implementar
+        pass
