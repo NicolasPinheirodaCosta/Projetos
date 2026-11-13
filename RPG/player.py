@@ -31,7 +31,11 @@ class Player:
                 "level": informations.get("level", 1),
                 "xp": informations.get("xp", 0),
                 "xp_req": informations.get("xp_req", self.xp_required(informations.get("level", 1))),
-                "xp_earn": informations.get("xp_earn", 0)}
+                "xp_earn": informations.get("xp_earn", 0)},
+
+            "resources": {
+                "money": informations.get("money", 0),
+                "reset_token": informations.get("reset_token", 0)}
             } #informações de experiencia e nivel
 
         self.base_stats = {
@@ -130,5 +134,28 @@ class Player:
 
         return {stat: points * rates[stat] for stat, points in self.stats_points.items()}
 
-    def reset_points(self): #ainda a implementar
-        pass
+    def reset_points(self, tokens, stats=None): #resetar pontos
+        level = self.informations["experience"]["level"] #caminho de nivel
+        resources =  self.informations["resources"] #caminho de recursos
+
+        if level < self.max_level: #verificador de nivel para resetar pontos
+            return False
+        
+        if not stats or any(s not in self.stats_path for s in stats):
+            return False
+
+        groups = {self.stats_path[s][:-1] for s in stats}
+        cost = len(groups)  # 1 token por grupo
+        if resources["reset_token"] < cost:
+            return False
+
+        targets = [s for s, path in self.stats_path.items() if path[:-1] in groups]
+        refunded = sum(self.stats_points[s] for s in targets)
+        if refunded == 0:
+            return False
+
+        resources["reset_token"] -= cost
+        for s in targets:
+            self.stats_points[s] = 0
+        self.__points_earn += refunded  # devolução dos pontos
+        return True #devolução de pontos feita
