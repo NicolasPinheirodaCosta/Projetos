@@ -7,6 +7,8 @@ class Player:
     min_dodge, max_dodge = 0, 100 #esquiva minima/máxima
     min_hit_chance, max_hit_chance = 5, 95 #chance de acerto minimo/máxima
 
+
+
     evasion_scale = 100 #escala de evasão
 
     __progression_point, __max_points = 3, 3 * max_level #ponto de progressão | limite de pontos máximo
@@ -159,3 +161,50 @@ class Player:
             self.stats_points[s] = 0
         self.__points_earn += refunded  # devolução dos pontos
         return True #devolução de pontos feita
+
+    # -------------------- combate ---------------------
+    def combat (self, enemy): #sistema de combate
+        you_agility = self.base_stats["resources"]["combat"]["agility"] #agilidade do jogador
+        enemy_agility = enemy.base_stats["resources"]["combat"]["agility"] #agilidade do inimigo
+
+        evasion = self.base_stats["resources"]["combat"]["evasion"] #evasão
+        reaction = self.base_stats["resources"]["combat"]["reaction"] #reação
+        precision = self.base_stats["resources"]["combat"]["precision"] #precisão
+
+        crit_multiplier, crit_chance = 1.5, 0.1 #multiplicador de critico e chance de critico
+        my_attack = self.base_stats["attack"] #ataque
+        his_defense = enemy.base_stats["defense"] #defesa
+
+        def first_attack (): #quem ataca primeiro  
+            if you_agility > enemy_agility:
+                return True #True se player tiver agility mais alta que inimigo, ataca primeiro
+            elif you_agility < enemy_agility:
+                return False #se inimigo tiver agilidade maior, falso, ele ataca primeiro
+            else:
+                return rd.choice([True, False]) #50/50 entre escolha caso seja igual
+
+        def avoid(): #mecanica de desviar
+            dodge_chance = min(self.evasion_scale,(evasion * reaction) / self.evasion_scale) #formula de desvio
+
+            return rd.random() * 100 > (100 - dodge_chance) #chance de desvio
+
+        def accuracy(): #mecanica de precisão
+            hit_chance = max(self.min_hit_chance, min(self.max_hit_chance, precision)) #formula de acerto
+
+            return rd.random() * 100 < hit_chance #chance de acerto
+
+        def damage(damage_type="phy", power=100): #calculadora de dano
+            final_damage = 0
+
+            if damage_type == "phy":
+                final_damage = (my_attack["physical"] * power / 100) - his_defense["physical"]
+
+            elif damage_type == "mag":
+                final_damage = (my_attack["magical"] * power / 100) - his_defense["magical"]
+
+            final_damage = max(0, final_damage) #evita dano negativo (defesa maior que ataque)
+
+            if rd.random() < crit_chance: #10% de chance de critico
+                final_damage *= crit_multiplier #1.5x = 50% a mais de dano
+
+            return final_damage #dano final causado
