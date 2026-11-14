@@ -175,6 +175,11 @@ class Player:
         my_attack = self.base_stats["attack"] #ataque
         his_defense = enemy.base_stats["defense"] #defesa
 
+        current_life = self.base_stats["resources"]["health"]["current"]
+        maximum_life = self.base_stats["resources"]["health"]["maximum"]
+
+        turncount = 0
+
         def first_attack (): #quem ataca primeiro  
             if you_agility > enemy_agility:
                 return True #True se player tiver agility mais alta que inimigo, ataca primeiro
@@ -208,3 +213,32 @@ class Player:
                 final_damage *= crit_multiplier #1.5x = 50% a mais de dano
 
             return final_damage #dano final causado
+
+        def health_bar(target): #barra de vida
+            percent_life = (current_life/maximum_life) * 100
+
+            if current_life <= 0:
+                return "defeated"
+
+            return f"HP: {current_life}/{maximum_life} | ({percent_life:.1f}%)"
+
+        def damage_take(damage):
+            nonlocal current_life
+
+            current_life = max(0, current_life - damage)
+
+            return current_life
+
+        def actions (): #ações tomadas
+            player_act = None
+            enemy_act = None
+
+            if player_act and enemy_act:
+                pass
+
+        def turnos (): #contabilidade de turnos
+            nonlocal turncount
+
+            turncount += 1
+
+            return turncount
