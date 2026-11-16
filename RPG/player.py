@@ -1,4 +1,5 @@
 import random as rd
+import time as tm
 
 class Player:
     min_level, max_level = 1, 50 #nivel minimo/maximo
@@ -67,7 +68,8 @@ class Player:
 
         self.__points_earn = 0  # pontos disponíveis para gastar
 
-    # -------------------- sistema de nivel ---------------------
+# -------------------- sistema de nivel ---------------------
+
 
     def xp_required (self, level): #xp necessário para sair do nivel informado
         return round(100 * level * 1.5)
@@ -97,7 +99,7 @@ class Player:
             xp["xp"] = 0
         return True
 
-    # -------------------- manejamento de pontos ---------------------
+# -------------------- manejamento de pontos ---------------------
 
     def __total_points(self): #pontos totais acumulados pelo jogador
         return sum(self.stats_points.values()) + self.__points_earn
@@ -162,83 +164,104 @@ class Player:
         self.__points_earn += refunded  # devolução dos pontos
         return True #devolução de pontos feita
 
-    # -------------------- combate ---------------------
-    def combat (self, enemy): #sistema de combate
-        you_agility = self.base_stats["resources"]["combat"]["agility"] #agilidade do jogador
-        enemy_agility = enemy.base_stats["resources"]["combat"]["agility"] #agilidade do inimigo
+# -------------------- vida --------------------
 
-        evasion = self.base_stats["resources"]["combat"]["evasion"] #evasão
-        reaction = self.base_stats["resources"]["combat"]["reaction"] #reação
-        precision = self.base_stats["resources"]["combat"]["precision"] #precisão
+    def life_cap(self): # gerenciamento de vida
+        health = self.base_stats["resources"]["health"]
 
-        crit_multiplier, crit_chance = 1.5, 0.1 #multiplicador de critico e chance de critico
-        my_attack = self.base_stats["attack"] #ataque
-        his_defense = enemy.base_stats["defense"] #defesa
+        health["current"] = max(0, min(health["current"], health["maximum"]))
+        return health["current"]
 
-        current_life = self.base_stats["resources"]["health"]["current"]
-        maximum_life = self.base_stats["resources"]["health"]["maximum"]
+    def health_bar(self): #funcionamento de barra de vida
+        health = self.base_stats["resources"]["health"]
+        self.life_cap()
 
-        turncount = 0
+        current = health["current"]
+        maximum = health["maximum"]
+        percent = current / maximum
+        
+        return f"HP: {current}/{maximum} | {percent:.0%}"
 
-        def first_attack (): #quem ataca primeiro  
-            if you_agility > enemy_agility:
-                return True #True se player tiver agility mais alta que inimigo, ataca primeiro
-            elif you_agility < enemy_agility:
-                return False #se inimigo tiver agilidade maior, falso, ele ataca primeiro
+    def heal(self): # recuperação de vida por descanso
+        health = self.base_stats["resources"]["health"]
+
+        if not self.is_alive() or health["current"] >= health["maximum"]:
+            return False
+
+        current_time = tm.time()
+
+        if not hasattr(self, "_last_heal"):
+            self._last_heal = current_time
+            return False
+
+        if current_time - self._last_heal >= 2:
+            health["current"] += health["maximum"] * 0.01
+            self.life_cap()
+            self._last_heal = current_time
+
+        return True
+            
+    def take_damage(self, damage=0):  #validador de recebimento de dano
+        if damage < 0 or not self.is_alive():
+            return False
+        
+        health = self.base_stats["resources"]["health"]
+
+        health["current"] -= damage
+        self.life_cap()
+
+    def is_alive(self): #verifica se player esta vivo ou morto
+
+            if self.life_cap() <= 0:
+                return False
             else:
-                return rd.choice([True, False]) #50/50 entre escolha caso seja igual
+                return True
+    
+# -------------------- mana ---------------------
 
-        def avoid(): #mecanica de desviar
-            dodge_chance = min(self.evasion_scale,(evasion * reaction) / self.evasion_scale) #formula de desvio
+    def mana_cap(self): #teto de gasto e uso para mana
+        mana = self.base_stats["resources"]["mana"]
 
-            return rd.random() * 100 > (100 - dodge_chance) #chance de desvio
+        mana["current"] = max(0, min(mana["current"], mana["maximum"]))
+        return mana["current"]
 
-        def accuracy(): #mecanica de precisão
-            hit_chance = max(self.min_hit_chance, min(self.max_hit_chance, precision)) #formula de acerto
+    def use_mana(self, cost, type_attack="mag"): #gerenciamento de uso de mana
+        mana = self.base_stats["resources"]["mana"]
 
-            return rd.random() * 100 < hit_chance #chance de acerto
+        if type_attack != "mag":
+            return False
 
-        def damage(damage_type="phy", power=100): #calculadora de dano
-            final_damage = 0
+        if mana["current"] < cost:
+            return False
 
-            if damage_type == "phy":
-                final_damage = (my_attack["physical"] * power / 100) - his_defense["physical"]
+        mana["current"] -= cost
+        self.mana_cap()
+        return True
 
-            elif damage_type == "mag":
-                final_damage = (my_attack["magical"] * power / 100) - his_defense["magical"]
+    def restore_mana(self, attack_type, cost=0): #gerenciamento de mana
+        if attack_type == "mag":
+            return self.use_mana(cost)
 
-            final_damage = max(0, final_damage) #evita dano negativo (defesa maior que ataque)
+        elif attack_type == "phy":
+            mana = self.base_stats["resources"]["mana"]
+            restore = mana["maximum"] * 0.03
 
-            if rd.random() < crit_chance: #10% de chance de critico
-                final_damage *= crit_multiplier #1.5x = 50% a mais de dano
+            mana["current"] += restore
+            self.mana_cap()
+            return True
 
-            return final_damage #dano final causado
+        return False  
+          
+# -------------------- status ---------------------
 
-        def health_bar(target): #barra de vida
-            percent_life = (current_life/maximum_life) * 100
 
-            if current_life <= 0:
-                return "defeated"
+    def can_act(self): #verifica se player pode fazer qualquer ação
+        if self.is_alive():
+            return True
+        return False
 
-            return f"HP: {current_life}/{maximum_life} | ({percent_life:.1f}%)"
+    def inventory(self): #sistema de inventario
+        pass
 
-        def damage_take(damage):
-            nonlocal current_life
-
-            current_life = max(0, current_life - damage)
-
-            return current_life
-
-        def actions (): #ações tomadas
-            player_act = None
-            enemy_act = None
-
-            if player_act and enemy_act:
-                pass
-
-        def turnos (): #contabilidade de turnos
-            nonlocal turncount
-
-            turncount += 1
-
-            return turncount
+    def movement(self): #define em que estado de movimento está, se esta correndo ou caminhando
+        pass
