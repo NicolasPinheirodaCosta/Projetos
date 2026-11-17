@@ -37,7 +37,7 @@ class Player:
                 "xp_earn": informations.get("xp_earn", 0)},
 
             "resources": {
-                "money": informations.get("money", 0),
+                "ruble": informations.get("ruble", 0), #dinheiro do jogo é ruble
                 "reset_token": informations.get("reset_token", 0)}
             } #informações de experiencia e nivel
 
@@ -252,16 +252,133 @@ class Player:
 
         return False  
           
-# -------------------- status ---------------------
-
+# -------------------- controle ---------------------
 
     def can_act(self): #verifica se player pode fazer qualquer ação
         if self.is_alive():
             return True
         return False
 
-    def inventory(self): #sistema de inventario
-        pass
+    def inventory(self): # sistema de inventário
+        self.inventory_data = {
+            "rubles": 0,
+            "items": {}}
 
-    def movement(self): #define em que estado de movimento está, se esta correndo ou caminhando
-        pass
+    def add_item(self, item_name): # adiciona item ao inventário
+        items = self.inventory_data["items"]
+
+        if len(items) >= 64:
+            return False
+
+        if item_name in items:
+            return False
+
+        items[item_name] = {"type": "item"}
+        return True
+
+    
+    def add_bag(self, bag_name, bag_type): #adiciona bag em itens
+        items = self.inventory_data["items"]
+
+        bag_sizes = {
+            "s_bag": 2,
+            "m_bag": 4,
+            "l_bag": 8}
+
+        if bag_type not in bag_sizes or len(items) >= 64:
+            return False
+
+        if bag_name in items:
+            return False
+
+        items[bag_name] = {
+            "type": "bag",
+            "size": bag_sizes[bag_type],
+            "items": {}}
+
+        return True
+
+
+    def store_item(self, bag_name, item_name):
+        items = self.inventory_data["items"]
+
+        if bag_name not in items:
+            return False
+
+        bag = items[bag_name]
+
+        if bag["type"] != "bag":
+            return False
+
+        if len(bag["items"]) >= bag["size"]:
+            return False
+
+        if item_name in items or item_name in bag["items"]:
+            return False
+
+        bag["items"][item_name] = {"type": "item"}
+        return True
+
+
+    def change_rubles(self, amount):
+        rubles = self.inventory_data["rubles"]
+        new_amount = rubles + amount
+
+        if not 0 <= new_amount <= 9_999_999:
+            return False
+
+        self.inventory_data["rubles"] = new_amount
+        return True
+
+    def move_to_bag(self, bag_name, item_name):
+        items = self.inventory_data["items"]
+
+        if bag_name not in items:
+            return False
+
+        bag = items[bag_name]
+
+        if bag["type"] != "bag" or item_name not in items:
+            return False
+
+        if items[item_name]["type"] != "item":
+            return False
+
+        if len(bag["items"]) >= bag["size"]:
+            return False
+
+        bag["items"][item_name] = items.pop(item_name)
+        return True
+
+    def take_from_bag(self, bag_name, item_name):
+        items = self.inventory_data["items"]
+
+        if bag_name not in items:
+            return False
+
+        bag = items[bag_name]
+
+        if bag["type"] != "bag" or item_name not in bag["items"]:
+            return False
+
+        if len(items) >= 64 or item_name in items:
+            return False
+
+        items[item_name] = bag["items"].pop(item_name)
+        return True
+
+
+    def movement(self, standing=False, walking=False, running=False): #registrador de movimento
+        if sum((standing, walking, running)) != 1:
+            raise ValueError("apenas um movimento pode estar ativo")
+
+        self.standing = standing
+        self.walking = walking
+        self.running = running
+
+        if standing:
+            return standing
+        elif walking:
+            return walking
+        elif running:
+            return running
